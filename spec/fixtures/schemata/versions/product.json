@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "extends": "line_item",
+  "properties": {
+    "url": {
+      "type": "string"
+    },
+    "image": {
+      "type": "string"
+    }
+  }
+}

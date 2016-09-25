@@ -26,11 +26,9 @@ module SchemaTools
           self.absolute_filename= name_or_hash
           decode src
       end
+      handle_versions
       handle_extends
       resolve_refs
-      if SchemaTools.schema_version.present?
-        handle_versions(self)
-      end
     end
 
     ##################################################################################
@@ -50,10 +48,6 @@ module SchemaTools
 
     def empty?
       @hash.empty?
-    end
-
-    def delete(key)
-      @hash.delete(key)
     end
 
     def keys
@@ -115,13 +109,9 @@ module SchemaTools
 
     def handle_extends
       if self[:extends]
-        extends = self[:extends].is_a?(Array) ? self[:extends] : [ self[:extends] ]
+        extends = self[:extends].is_a?(Array) ? self[:extends] : [self[:extends]]
         extends.each do |ext_name|
           ext = Reader.read(ext_name, absolute_dir)
-          # current schema props win
-          if SchemaTools.schema_version.present?
-            ext = handle_versions(ext)
-          end
           self[:properties] = ext[:properties].merge(self[:properties] || {})
         end
       end
@@ -154,9 +144,6 @@ module SchemaTools
           end
         end
       end
-      if SchemaTools.schema_version.present?
-        schema = handle_versions(schema)
-      end
       schema
     end
 
@@ -174,34 +161,33 @@ module SchemaTools
       # recurse to resolve possible refs in object properties
       resolve_refs(values_from_pointer, stack)
 
-      hash.merge!(values_from_pointer) { |key, old, new| old }
+      hash.merge!(values_from_pointer.to_h) { |key, old, new| old }
       hash.delete("$ref")
       stack.pop
     end
 
-
-    def handle_versions(schema)
-      schema_name = File.basename(@absolute_filename, '.*')
-      versions = Dir.entries(@absolute_dir).select do |name|
-        matches = /#{schema_name}@(\d{8})\.change/.match(name)
-        if matches.present?
-          matches[1].to_i <= SchemaTools.schema_version
+    def handle_versions
+      if SchemaTools.schema_version.present?
+        schema_name = File.basename(self.absolute_filename, '.*')
+        versions = Dir.entries(self.absolute_dir).select do |name|
+          matches = /#{schema_name}@(\d{8})\.change/.match(name)
+          if matches.present?
+            matches[1].to_i <= SchemaTools.schema_version
+          end
+        end
+        versions.each do |name|
+          change_set = JSON.load(File.read(File.join(self.absolute_dir, name)))
+          removed = change_set['remove']
+          modified = change_set['modify']
+          removed.each do |key|
+            self['properties'].delete(key)
+          end
+          modified.each do |key, value|
+            self['properties'][key] = value
+          end
         end
       end
-      versions.each do |name|
-        change_set = JSON.load(File.read(File.join(@absolute_dir, name)))
-        removed = change_set['remove']
-        modified = change_set['modify']
-        removed.each do |key|
-          schema.delete(key)
-        end
-        modified.each do |key, value|
-          schema[key] = value
-        end
-      end
-      schema
     end
-
   end
 end
 

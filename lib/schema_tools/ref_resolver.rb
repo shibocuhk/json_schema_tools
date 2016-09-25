@@ -37,8 +37,7 @@ module SchemaTools
       # TODO use local tools instance or base path from global SchemaTools.schema_path
       base_dir = relative_to ? relative_to.absolute_dir : SchemaTools.schema_path
       path = find_local_file_path(base_dir, uri.path, relative_to)
-      open (path) {|f| schema = JSON.parse(f.read) }
-
+      schema = Schema.new(path)
       if pointer
         self._retrieve_pointer_from_object(pointer, schema)
       else

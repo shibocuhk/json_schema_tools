@@ -41,6 +41,30 @@ describe SchemaTools::Schema do
       expect(hash['properties']['tag'].present?).to be false
       expect(hash['properties']['rating'].present?).to be true
     end
+
+    context 'extends and ref' do
+      after(:each) do
+        expect(@hash['properties']['price'].present?).to be true
+        expect(@hash['properties']['description'].present?).to be true
+        expect(@hash['properties']['tag'].present?).to be false
+        expect(@hash['properties']['rating'].present?).to be true
+      end
+      it 'apply versions when extends' do
+        SchemaTools.schema_version = 20160103
+        schema = SchemaTools::Schema.new("#{SchemaTools.schema_path}/versions/product.json")
+        @hash = schema.to_h
+        expect(@hash['properties']['url'].present?).to be true
+        expect(@hash['properties']['image'].present?).to be true
+      end
+
+      it 'apply version when $ref' do
+        SchemaTools.schema_version = 20160103
+        schema = SchemaTools::Schema.new("#{SchemaTools.schema_path}/versions/book.json")
+        @hash = schema.to_h
+        expect(@hash['properties']['author'].present?).to be true
+      end
+    end
+
   end
 
   context '.to_h' do
