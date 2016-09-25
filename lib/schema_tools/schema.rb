@@ -28,6 +28,9 @@ module SchemaTools
       end
       handle_extends
       resolve_refs
+      if SchemaTools.schema_version.present?
+        handle_versions(self)
+      end
     end
 
     ##################################################################################
@@ -47,6 +50,10 @@ module SchemaTools
 
     def empty?
       @hash.empty?
+    end
+
+    def delete(key)
+      @hash.delete(key)
     end
 
     def keys
@@ -112,6 +119,9 @@ module SchemaTools
         extends.each do |ext_name|
           ext = Reader.read(ext_name, absolute_dir)
           # current schema props win
+          if SchemaTools.schema_version.present?
+            ext = handle_versions(ext)
+          end
           self[:properties] = ext[:properties].merge(self[:properties] || {})
         end
       end
@@ -144,6 +154,9 @@ module SchemaTools
           end
         end
       end
+      if SchemaTools.schema_version.present?
+        schema = handle_versions(schema)
+      end
       schema
     end
 
@@ -164,6 +177,29 @@ module SchemaTools
       hash.merge!(values_from_pointer) { |key, old, new| old }
       hash.delete("$ref")
       stack.pop
+    end
+
+
+    def handle_versions(schema)
+      schema_name = File.basename(@absolute_filename, '.*')
+      versions = Dir.entries(@absolute_dir).select do |name|
+        matches = /#{schema_name}@(\d{8})\.change/.match(name)
+        if matches.present?
+          matches[1].to_i <= SchemaTools.schema_version
+        end
+      end
+      versions.each do |name|
+        change_set = JSON.load(File.read(File.join(@absolute_dir, name)))
+        removed = change_set['remove']
+        modified = change_set['modify']
+        removed.each do |key|
+          schema.delete(key)
+        end
+        modified.each do |key, value|
+          schema[key] = value
+        end
+      end
+      schema
     end
 
   end

@@ -24,5 +24,13 @@ module SchemaTools
     def schema_path
       @schema_path
     end
+
+    def schema_version=(version)
+      @schema_version = version
+    end
+
+    def schema_version
+      @schema_version
+    end
   end
 end

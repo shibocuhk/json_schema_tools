@@ -1,0 +1,14 @@
+{
+  "modify": {
+    "price": {
+      "type": "number"
+    },
+    "description": {
+      "type": "string"
+    },
+    "tag": {
+      "type": "string"
+    }
+  },
+  "remove": []
+}

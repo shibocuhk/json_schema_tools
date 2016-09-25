@@ -1,0 +1,8 @@
+{
+  "modify": {
+    "rating": {
+      "type": "number"
+    }
+  },
+  "remove": []
+}
